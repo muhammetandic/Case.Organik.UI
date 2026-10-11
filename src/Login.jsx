@@ -1,10 +1,11 @@
-import { useForm } from 'react-hook-form'
-import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Link, useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
-
+import { useForm } from 'react-hook-form'
+import { Link, useNavigate } from 'react-router-dom'
+import { z } from 'zod'
+import { login } from './api/auth.js'
+import { session } from './lib/session.js'
 
 const schema = z.object({
   username: z.string().min(1, 'Bu alanın doldurulması zorunludur'),
@@ -12,8 +13,7 @@ const schema = z.object({
 })
 
 export const LoginPage = () => {
-  const navigate = useNavigate();
-
+  const navigate = useNavigate()
   const [apiError, setApiError] = useState(null)
 
   const { register, handleSubmit, formState: { errors } } = useForm({
@@ -21,32 +21,21 @@ export const LoginPage = () => {
   })
 
   const mutation = useMutation({
-    mutationFn: async (postData) => {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/login`, {
-        method: 'POST',
-        body: JSON.stringify(postData),
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      })
-      return await res.json()
-    },
+    mutationFn: login,
     onError: (error) => {
-      console.log(error)
+      setApiError(error.message)
     },
     onSuccess: (data) => {
-      if (data.errorCode) {
-        setApiError(data.errors)
-        return
-      }
-      localStorage.setItem('token', data.token)
-      localStorage.setItem('id', data.id)
+      session.save(data)
       navigate('/check-code')
-    }
+    },
   })
+
   const handleLogin = (postData) => {
+    setApiError(null)
     mutation.mutate(postData)
   }
+
   return (
     <div className="h-screen flex items-center justify-center">
       <form onSubmit={handleSubmit(handleLogin)}>
@@ -65,7 +54,7 @@ export const LoginPage = () => {
             {errors.password ? <p className="text-red-500 text-xs pl-1">{errors.password.message}</p> : null}
           </div>
           <div className="text-center">
-            <button type='submit' className='bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded'>Giriş Yap</button>
+            <button type='submit' disabled={mutation.isPending} className='bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded'>Giriş Yap</button>
           </div>
         </div>
         <div className='text-center mt-4'>

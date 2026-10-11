@@ -1,50 +1,41 @@
-import { z } from "zod"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { Link, useNavigate } from "react-router-dom"
-import { useState } from "react"
-import { useMutation } from "@tanstack/react-query"
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useMutation } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { Link, useNavigate } from 'react-router-dom'
+import { z } from 'zod'
+import { register } from './api/auth.js'
 
 const registerSchema = z.object({
-  username: z.string().min(1, "Kullanıcı adı boş bırakılamaz"),
-  password: z.string().min(1, "Parola boş bırakılamaz"),
-  email: z.string().min(1, "Email boş bırakılamaz").email("Geçersiz email"),
-  phone: z.string().min(1, "Telefon numarası boş bırakılamaz"),
+  username: z.string().min(1, 'Kullanıcı adı boş bırakılamaz'),
+  password: z.string().min(1, 'Parola boş bırakılamaz'),
+  email: z.string().min(1, 'Email boş bırakılamaz').email('Geçersiz email'),
+  phone: z.string().min(1, 'Telefon numarası boş bırakılamaz'),
 })
 
 export const RegisterPage = () => {
   const navigate = useNavigate()
   const [apiError, setApiError] = useState(null)
-  const { register, handleSubmit, formState: { errors } } = useForm({
+
+  const { register: registerField, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(registerSchema),
   })
 
   const mutation = useMutation({
-    mutationFn: async (postData) => {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/register`, {
-        method: 'POST',
-        body: JSON.stringify(postData),
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      })
-      return await res.json()
-    },
+    mutationFn: register,
     onError: (error) => {
-      console.log(error)
+      setApiError(error.message)
     },
-    onSuccess: (data) => {
-      if (data.errorCode) {
-        setApiError(data.errors)
-        return
-      }
+    onSuccess: () => {
       navigate('/')
-    }
+    },
   })
 
   const onSubmit = (postData) => {
+    setApiError(null)
     mutation.mutate(postData)
   }
+
   return (
     <div className="h-screen flex items-center justify-center">
       <form onSubmit={handleSubmit(onSubmit)}>
@@ -54,26 +45,26 @@ export const RegisterPage = () => {
         <div className="text-left">
           <div className="mb-4 h-20">
             <p className="pl-1 mb-1">Kullanıcı Adı</p>
-            <input type="text" {...register('username')} />
+            <input type="text" {...registerField('username')} />
             {errors.username ? <p className="text-red-500 text-xs pl-1">{errors.username.message}</p> : null}
           </div>
           <div className="mb-4 h-20">
             <p className="pl-1 mb-1">E-posta</p>
-            <input type="text" {...register('email')} />
+            <input type="text" {...registerField('email')} />
             {errors.email ? <p className="text-red-500 text-xs pl-1">{errors.email.message}</p> : null}
           </div>
           <div className="mb-4 h-20">
             <p className="pl-1 mb-1">Telefon</p>
-            <input type="number" {...register('phone')} />
+            <input type="number" {...registerField('phone')} />
             {errors.phone ? <p className="text-red-500 text-xs pl-1">{errors.phone.message}</p> : null}
           </div>
           <div className="mb-4 h-20">
             <p className="pl-1 mb-1">Parola</p>
-            <input type="password" {...register('password')} />
+            <input type="password" {...registerField('password')} />
             {errors.password ? <p className="text-red-500 text-xs pl-1">{errors.password.message}</p> : null}
           </div>
           <div className="text-center">
-            <button type='submit' className='bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded'>Kayıt Ol</button>
+            <button type='submit' disabled={mutation.isPending} className='bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded'>Kayıt Ol</button>
           </div>
         </div>
         <div className='text-center mt-4'>
